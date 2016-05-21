@@ -102,12 +102,13 @@ class KivyMP3(GridLayout):
 
 	# Actions
 	def songSelect(self,instance):
-		instance.background_color=(1,0,0,1)
+
+		instance.background_color=(1,1,1,.9)
 		print "Clicked"
 		print instance.musicFileName
 		
 	def songRelease(self,instance):
-		instance.background_color=(0,0,0,1)
+		instance.background_color=(.9,.8,1,.8)
 
 
 	def stripSquare(self,item):

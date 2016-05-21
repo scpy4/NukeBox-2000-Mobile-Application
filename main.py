@@ -33,7 +33,7 @@ class NukeBoxClientProtocol(LineReceiver):
 
 		# Create the Reference to the File
 		self.fname = fname
-		#self.fname = "/sdcard/Download/Mike.mp3"
+		#self.fname = "//sdcard/Download/Mike.mp3"
 
 		# Get the Users Name & Mac ID
 		self.name = getpass.getuser()
@@ -203,6 +203,7 @@ from kivy.uix.image import Image
 from kivy.loader import Loader
 from kivy.uix.carousel import Carousel
 from kivy.uix.gridlayout import GridLayout
+from kivy.utils import platform
 
 from MP3Scan import KivyMP3
 from functools import partial
@@ -211,7 +212,6 @@ from kivy.uix.filechooser import FileChooserIconView, FileChooserListView
 
 
 from uuid import getnode as get_mac
-
 
 # A simple kivy App, with a textbox to enter messages, and
 # a large label to display all the messages received from
@@ -223,14 +223,26 @@ class NukeBoxApp(App, KivyMP3):
 
 		root = self.setup_gui()
 
+
 		#self.connect_to_server(self.factory.server)
 		#Window.size =(432,768)
 
 
-		#Retuen the Window built inside setup_gui
+		#Return the Window built inside setup_gui
 		return root	
 
 	def setup_gui(self):
+
+			# Check the operating system and set the file direttory prefix.
+			
+			# System is Linux
+			if platform == "linux":
+				self.prefix = "sdcard/"
+
+			# System is Android
+			else:
+				self.prefix = "/sdcard/"
+
 			# Get the MAC Address in hex format.
 			self.mac = hex(get_mac())
 
@@ -243,12 +255,12 @@ class NukeBoxApp(App, KivyMP3):
 
 			# Carosel One
 			self.slideOne = BoxLayout(orientation="vertical", size_hint=(1,1))
-			self.scro = KivyMP3.MyID3(self,"sdcard/Download/")
+			self.scro = KivyMP3.MyID3(self,str(self.prefix)+"Download/")
 			self.slideOne.add_widget(self.scro)
 			self.carousel.add_widget(self.slideOne)
 
 			# Carosel Two
-			self.scro2 = KivyMP3.MyID3(self,"sdcard/Music/")
+			self.scro2 = KivyMP3.MyID3(self,str(self.prefix)+"Music/")
 			self.slideTwo = BoxLayout(orientation="vertical")
 			self.carousel.add_widget(self.slideTwo)
 			self.slideTwo.add_widget(self.scro2)
@@ -283,7 +295,7 @@ class NukeBoxApp(App, KivyMP3):
 
 			# File Browser / Selection 
 
-			self.sel = FileChooserListView(rootpath="/sdcard/Download/",filters=["*.mp3"])
+			self.sel = FileChooserListView(rootpath=str(self.prefix)+"Download/",filters=["*.mp3"])
 			self.carousel.add_widget(self.sel)
 
 			self.sel.bind(on_submit=self.fileSelect)
@@ -307,19 +319,24 @@ class NukeBoxApp(App, KivyMP3):
 	#=======================#
 
 	def songSelect(self,instance):
+
+		# Disable the button once pressed - Prevents multiple sends of the MP3
+		instance.disabled = True
 		print instance
 		print "Hellonn\n\n\n"
 		print instance.musicFileName
 		if self.carousel.index == 0:
-			fileDir = "sdcard/Download/" + str(instance.musicFileName)
+			fileDir = str(self.prefix)+"Download/" + str(instance.musicFileName)
 		elif self.carousel.index == 1:
-			fileDir = "sdcard/Music/" + str(instance.musicFileName)
+			fileDir = str(self.prefix)+"Music/" + str(instance.musicFileName)
 
-		print fileDir
-
+		# Call the Twisted transfer
 		self.twistIt(fileDir)
 
+	def songRelease(self,instance):
+		instance.background_color=(.9,.8,1,.8)
 
+	# Switch tabs
 	def swTab(self,slideValue,instance):
 		'''
 		Switch file viewer depending if not on current
@@ -357,17 +374,18 @@ class NukeBoxApp(App, KivyMP3):
 		self.direct = str(x[-1])
 		print ("File Directory: " + selectedDir[0])
 
-		self.twistIt(electedDir[0])
+		self.twistIt(selectedDir[0])
 
-		# Call twisted functionality
+	# Call twisted functionality
 	def twistIt(self,fileValue):
-
+		# Define the factory
 		self.factory = NukeBoxClientFactory(fileValue)
+		# Set up protocol
 		self.udp_protocol = NukeBoxClientBroadcastProtocol(self.factory)
+		# Listen for the server
 		reactor.listenUDP(0, self.udp_protocol)
 
-		
-
+	# Displat message on connectself.stripSquare
 	def connect_to_server(self, ip):
 				
 		print 'Connect To Server Function ' + str(ip)
